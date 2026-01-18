@@ -1,0 +1,3 @@
+DATABASE_URL="postgresql://admin:admin@host.docker.internal:5505/antrianar_db?schema=public"
+SECRET_KEY="hJGSDJHGASdhjgsahjsjgdhjsghdjgshjgd"
+NEXTAUTH_URL="http://localhost:3001"

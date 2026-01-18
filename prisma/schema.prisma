@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  AR
+  KEPALA_KANTOR
+  KEPALA_SEKSI
+  ADMIN
+  PELAKSANA
+  RECEPTIONIST
+}
+
+enum ConsultationStatus {
+  WAITING
+  IN_CONSULTATION
+  DONE
+}
+
+model Room {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Seksi {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  nip      String   @unique @db.VarChar(9)
+  password String
+  role     Role
+  name     String
+  seksiId  Int?
+  seksi    Seksi?   @relation(fields: [seksiId], references: [id])
+  lastCheckedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consultations    Consultation[]
+  assignedTaxpayers Taxpayer[]    @relation("AssignedAR")
+  createdChats     Chat[]         @relation("ChatCreator")
+  chatParticipants ChatParticipant[]
+  sentMessages     Message[]
+}
+
+model Taxpayer {
+  id            Int             @id @default(autoincrement())
+  npwp          String          @unique
+  name          String
+  assignedArNip String?
+  assignedAr    User?           @relation("AssignedAR", fields: [assignedArNip], references: [nip])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  consultations Consultation[]
+}
+
+model Consultation {
+  id         Int                @id @default(autoincrement())
+  taxpayerId Int
+  taxpayer   Taxpayer           @relation(fields: [taxpayerId], references: [id], onDelete: Cascade)
+  arNip      String?
+  ar         User?              @relation(fields: [arNip], references: [nip])
+  status     ConsultationStatus @default(WAITING)
+  room       String?
+  startTime  DateTime           @default(now())
+  endTime    DateTime?
+  notes      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+enum ChatType {
+  DIRECT
+  GROUP
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+}
+
+model Chat {
+  id          Int       @id @default(autoincrement())
+  type        ChatType  @default(DIRECT)
+  name        String?   // For group chats
+  description String?
+  createdById Int
+  createdBy   User      @relation("ChatCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  participants ChatParticipant[]
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id       Int      @id @default(autoincrement())
+  chatId   Int
+  chat     Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+  lastReadAt DateTime?
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id        Int          @id @default(autoincrement())
+  chatId    Int
+  chat      Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  Int
+  sender    User         @relation(fields: [senderId], references: [id])
+  type      MessageType  @default(TEXT)
+  content   String
+  fileUrl   String?
+  fileName  String?
+  fileSize  Int?
+  sentAt    DateTime     @default(now())
+  readAt    DateTime?
+}

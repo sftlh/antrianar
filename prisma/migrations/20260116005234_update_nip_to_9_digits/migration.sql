@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "nip" SET DATA TYPE VARCHAR(9);
