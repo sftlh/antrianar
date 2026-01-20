@@ -6,7 +6,7 @@ const { Server } = require('socket.io')
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 3001
 
 // Initialize Next.js
 const app = next({ dev, hostname, port })
@@ -22,7 +22,7 @@ app.prepare().then(() => {
   const io = new Server(httpServer, {
     path: '/api/socket',
     cors: {
-      origin: process.env.NEXTAUTH_URL || "http://localhost:3000",
+      origin: process.env.NEXTAUTH_URL || "http://localhost:3001",
       methods: ["GET", "POST"],
       credentials: true
     },

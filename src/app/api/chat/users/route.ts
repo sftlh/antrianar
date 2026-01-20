@@ -12,8 +12,8 @@ async function getCurrentUser(request: NextRequest) {
   try {
     // Use internal URL for API-to-API calls
     const internalUrl = process.env.NODE_ENV === 'production' 
-      ? 'http://localhost:3000' 
-      : (process.env.NEXTAUTH_URL || 'http://localhost:3000')
+      ? 'http://localhost:3001' 
+      : (process.env.NEXTAUTH_URL || 'http://localhost:3001')
     
     const meResponse = await fetch(`${internalUrl}/api/auth/me`, {
       headers: { cookie: authHeader }
