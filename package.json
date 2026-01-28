@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js -p 3001",
+    "dev": "node server.js -p 3010",
     "build": "prisma migrate deploy && prisma generate && next build",
     "start": "NODE_ENV=production node server.js -p 3001",
     "lint": "eslint"

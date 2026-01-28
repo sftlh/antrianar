@@ -53,6 +53,14 @@ interface TaxpayerWithConsultation {
       name: string
     }
   }
+  contacts?: {
+    id: number
+    name: string
+    email?: string
+    phoneNumber?: string
+    scanKTP?: string
+    createdAt: string
+  }[]
 }
 
 export default function ReceptionistDashboard() {
@@ -213,6 +221,15 @@ export default function ReceptionistDashboard() {
   const [showTaxpayerDropdown, setShowTaxpayerDropdown] = useState(false)
   const [isSearchingTaxpayer, setIsSearchingTaxpayer] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState('')
+  
+  // Contact Info States
+  const [showContactForm, setShowContactForm] = useState(true)
+  const [contactName, setContactName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactScan, setContactScan] = useState<File | null>(null)
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null)
+  const [existingScanUrl, setExistingScanUrl] = useState<string | null>(null)
 
   // Autofill states
   const [npwpSearchResults, setNpwpSearchResults] = useState<any[]>([])
@@ -313,15 +330,27 @@ export default function ReceptionistDashboard() {
 
     try {
       // Prepare registration data
-      const registrationData: any = {
-        taxpayerId: selectedTaxpayer.id,
-        room: selectedRoom
+      const formData = new FormData()
+      formData.append('taxpayerId', selectedTaxpayer.id.toString())
+      formData.append('room', selectedRoom)
+      
+      // Contact info is mandatory now
+      if (!contactName.trim()) {
+        setError('Nama PIC belum diisi. Wajib mengisi data PIC.');
+        setRegistering(false);
+        return;
       }
+
+      formData.append('contactName', contactName)
+      if (contactEmail) formData.append('contactEmail', contactEmail)
+      if (contactPhone) formData.append('contactPhone', contactPhone)
+      if (contactScan) formData.append('contactScan', contactScan)
+      if (selectedContactId) formData.append('existingContactId', selectedContactId.toString())
 
       const response = await fetch('/api/taxpayers/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registrationData),
+        // headers with Content-Type undefined ensures browser sets boundary for multipart
+        body: formData,
       })
 
       const data = await response.json()
@@ -340,6 +369,15 @@ export default function ReceptionistDashboard() {
           }
         })
         setSelectedRoom('') // Reset room selection
+        // Reset contact form
+        setShowContactForm(false)
+        setContactName('')
+        setContactEmail('')
+        setContactPhone('')
+        setSelectedContactId(null)
+        setExistingScanUrl(null)
+        setContactScan(null)
+        
         fetchRooms() // Refresh rooms list to reflect the occupied room
         fetchData() // Refresh consultations
       } else {
@@ -908,6 +946,149 @@ export default function ReceptionistDashboard() {
                                                   ))}
                                               </select>
                                           </div>
+                                       </div>
+
+                                       {/* Data PIC / Kontak (Wajib) */}
+                                       <div className="space-y-4 pt-4 border-t border-slate-100">
+                                            <div className="flex items-center justify-between">
+                                               <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                 <span className="bg-indigo-100 text-indigo-600 w-5 h-5 rounded flex items-center justify-center text-xs">3</span>
+                                                 Data PIC / Kontak (Wajib)
+                                               </label>
+                                            </div>
+
+                                            {/* Show existing contacts if any */}
+                                            {selectedTaxpayer && selectedTaxpayer.contacts && selectedTaxpayer.contacts.length > 0 && (
+                                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Riwayat Kontak Sebelumnya</p>
+                                                    <div className="space-y-3">
+                                                        {selectedTaxpayer.contacts.map((contact, idx) => (
+                                                            <div key={idx} className="flex items-start gap-3 p-2 bg-white rounded-lg border border-slate-100 shadow-sm">
+                                                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-base text-slate-500">
+                                                                    👤
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-semibold text-slate-800">{contact.name}</p>
+                                                                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-slate-500">
+                                                                        {contact.phoneNumber && <span>📞 {contact.phoneNumber}</span>}
+                                                                        {contact.email && <span>✉️ {contact.email}</span>}
+                                                                    </div>
+                                                                    <p className="text-[10px] text-slate-400 mt-1">
+                                                                        Diinput pada: {new Date(contact.createdAt).toLocaleDateString('id-ID')}
+                                                                    </p>
+                                                                </div>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setShowContactForm(true)
+                                                                        setContactName(contact.name)
+                                                                        setContactEmail(contact.email || '')
+                                                                        setSelectedContactId(contact.id)
+                                                                        setContactPhone(contact.phoneNumber || '')
+                                                                        setExistingScanUrl(contact.scanKTP || null)
+                                                                    }}
+                                                                    className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                                                                >
+                                                                    Gunakan
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {showContactForm && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-slate-500 mb-1">Nama Lengkap PIC <span className="text-red-500">*</span></label>
+                                                        <input
+                                                            type="text"
+                                                            value={contactName}
+                                                            onChange={(e) => {
+                                                              setContactName(e.target.value)
+                                                              if (selectedContactId) {
+                                                                setSelectedContactId(null)
+                                                                setExistingScanUrl(null)
+                                                              }
+                                                            }}
+                                                            className="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                            placeholder="Nama PIC"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                                                            <input
+                                                                type="email"
+                                                                value={contactEmail}
+                                                                onChange={(e) => setContactEmail(e.target.value)}
+                                                                className="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                                placeholder="email@contoh.com"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-slate-700 mb-1">No. HP / WhatsApp</label>
+                                                            <input
+                                                                type="tel"
+                                                                value={contactPhone}
+                                                                onChange={(e) => setContactPhone(e.target.value)}
+                                                                className="block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                                placeholder="08xxxxxxxxxx"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-700 mb-1">Scan KTP PIC / Surat Kuasa</label>
+                                                        {existingScanUrl ? (
+                                                            <div className="mb-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
+                                                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium text-slate-900 truncate">Scan tersimpan</p>
+                                                                        <a href={existingScanUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline">
+                                                                            Lihat file
+                                                                        </a>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setExistingScanUrl(null)}
+                                                                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                                                        title="Hapus / Ganti file"
+                                                                    >
+                                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*,application/pdf"
+                                                                    onChange={(e) => {
+                                                                        if (e.target.files && e.target.files[0]) {
+                                                                            setContactScan(e.target.files[0])
+                                                                        }
+                                                                    }}
+                                                                    className="block w-full text-sm text-slate-500
+                                                                      file:mr-4 file:py-2.5 file:px-4
+                                                                      file:rounded-xl file:border-0
+                                                                      file:text-sm file:font-semibold
+                                                                      file:bg-indigo-50 file:text-indigo-700
+                                                                      hover:file:bg-indigo-100"
+                                                                />
+                                                                <p className="mt-1 text-xs text-slate-400">Format: JPG, PNG, PDF (Max. 5MB)</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                        </div>
 
                                        <div className="flex gap-4 pt-4 border-t border-slate-100">

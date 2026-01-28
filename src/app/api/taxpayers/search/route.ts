@@ -34,6 +34,12 @@ export async function GET(request: NextRequest) {
             nip: true
           }
         },
+        contacts: {
+            orderBy: {
+                createdAt: 'desc'
+            },
+            take: 3 // Limit to 3 most recent contacts
+        },
         consultations: {
           where: {
             status: {
@@ -65,6 +71,7 @@ export async function GET(request: NextRequest) {
       npwp: taxpayer.npwp,
       name: taxpayer.name,
       createdAt: taxpayer.createdAt,
+      contacts: taxpayer.contacts, // Forward the contacts to frontend
       activeConsultation: taxpayer.consultations.length > 0 ? {
         id: taxpayer.consultations[0].id,
         status: taxpayer.consultations[0].status,

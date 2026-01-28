@@ -14,6 +14,8 @@ services:
     environment:
       NODE_ENV: production
       TZ: Asia/Jakarta
+    volumes:
+      - ./public/uploads:/usr/src/app/public/uploads
     ports:
       - 3001:3001
 

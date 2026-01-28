@@ -15,6 +15,34 @@ const handle = app.getRequestHandler()
 app.prepare().then(() => {
   const httpServer = createServer((req, res) => {
     const parsedUrl = parse(req.url, true)
+    
+    // Handle /uploads separately to ensure dynamic files are served
+    if (parsedUrl.pathname && parsedUrl.pathname.startsWith('/uploads/')) {
+      const fs = require('fs')
+      const path = require('path')
+      // Ensure we look in the right place. process.cwd() is usually the project root.
+      const filePath = path.join(process.cwd(), 'public', parsedUrl.pathname)
+
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath)
+        const ext = path.extname(filePath).toLowerCase()
+        
+        let contentType = 'application/octet-stream'
+        if (ext === '.pdf') contentType = 'application/pdf'
+        if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg'
+        if (ext === '.png') contentType = 'image/png'
+
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Content-Length': stat.size
+        })
+        
+        const readStream = fs.createReadStream(filePath)
+        readStream.pipe(res)
+        return
+      }
+    }
+
     handle(req, res, parsedUrl)
   })
 

@@ -74,12 +74,28 @@ model Taxpayer {
   updatedAt     DateTime        @updatedAt
 
   consultations Consultation[]
+  contacts      Contact[]
+}
+
+model Contact {
+  id          Int      @id @default(autoincrement())
+  taxpayerId  Int
+  taxpayer    Taxpayer @relation(fields: [taxpayerId], references: [id], onDelete: Cascade)
+  name        String
+  email       String?
+  phoneNumber String?
+  scanKTP     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  consultations Consultation[]
 }
 
 model Consultation {
   id         Int                @id @default(autoincrement())
   taxpayerId Int
   taxpayer   Taxpayer           @relation(fields: [taxpayerId], references: [id], onDelete: Cascade)
+  contactId  Int?
+  contact    Contact?           @relation(fields: [contactId], references: [id])
   arNip      String?
   ar         User?              @relation(fields: [arNip], references: [nip])
   status     ConsultationStatus @default(WAITING)
